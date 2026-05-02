@@ -210,44 +210,89 @@ export default function Page() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Total SKUs</p>
-                    <p className="text-3xl font-bold text-indigo-300">{result.extracted_features.avg_sku}</p>
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Total SKUs</p>
+                     <p className="text-3xl font-bold text-indigo-300">{result.extracted_features.avg_sku}</p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Shelf Density</p>
-                    <p className="text-3xl font-bold text-purple-300">{Math.round(result.extracted_features.avg_density * 100)}%</p>
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Shelf Density</p>
+                     <p className="text-3xl font-bold text-purple-300">{Math.round(result.extracted_features.avg_density * 100)}%</p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">SKU Diversity</p>
-                    <p className="text-3xl font-bold text-pink-300">{result.latent_variables.sku_diversity_score} <span className="text-sm font-normal text-slate-500">/10</span></p>
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">SKU Diversity</p>
+                     <p className="text-3xl font-bold text-pink-300">{result.latent_variables.sku_diversity_score} <span className="text-sm font-normal text-slate-500">/10</span></p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Inventory Val</p>
-                    <p className="text-3xl font-bold text-amber-300">₹{(result.latent_variables.inventory_value_estimate_inr || 0).toLocaleString()}</p>
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Organization</p>
+                     <p className="text-3xl font-bold text-fuchsia-300">{result.latent_variables.organization_score || 5} <span className="text-sm font-normal text-slate-500">/10</span></p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Footfall Idx</p>
-                    <p className="text-3xl font-bold text-sky-300">{result.latent_variables.footfall_proxy_index} <span className="text-sm font-normal text-slate-500">/10</span></p>
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Inventory Val</p>
+                     <p className="text-3xl font-bold text-amber-300">₹{(result.latent_variables.inventory_value_estimate_inr || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Footfall Idx</p>
+                     <p className="text-3xl font-bold text-sky-300">{result.latent_variables.footfall_proxy_index} <span className="text-sm font-normal text-slate-500">/10</span></p>
+                  </div>
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Competitors</p>
+                     <p className="text-3xl font-bold text-rose-300">{result.extracted_features.competitors}</p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] border-emerald-500/20">
-                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Confidence</p>
-                    <p className="text-3xl font-bold text-emerald-400">{Math.round(result.confidence_score * 100)}%</p>
+                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Confidence</p>
+                     <p className="text-3xl font-bold text-emerald-400">{Math.round(result.confidence_score * 100)}%</p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 rounded-2xl p-8 border border-indigo-500/20 mb-6 shadow-inner">
-                  <h3 className="text-sm text-indigo-200 mb-4 uppercase tracking-wider font-semibold">Projected Monthly Revenue</h3>
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-5xl font-black text-white">₹{result.monthly_revenue_range[0].toLocaleString()}</span>
-                    <span className="text-2xl text-indigo-300 font-medium">to ₹{result.monthly_revenue_range[1].toLocaleString()}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {/* Revenue Panel */}
+                  <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 rounded-2xl p-6 border border-indigo-500/20 shadow-inner flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm text-indigo-200 mb-3 uppercase tracking-wider font-semibold">Projected Monthly Revenue</h3>
+                      <div className="flex items-baseline gap-2 flex-wrap mb-4">
+                        <span className="text-3xl lg:text-4xl font-black text-white">₹{result.monthly_revenue_range[0].toLocaleString()}</span>
+                        <span className="text-xl text-indigo-300 font-medium">to ₹{result.monthly_revenue_range[1].toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t border-indigo-500/20 flex justify-between items-center mt-auto">
+                      <span className="text-indigo-200/70 text-sm">Est. Net Income</span>
+                      <span className="text-indigo-300 font-semibold">₹{result.monthly_income_range[0].toLocaleString()} - ₹{result.monthly_income_range[1].toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-indigo-500/20 flex justify-between items-center">
-                    <span className="text-indigo-200/70 text-sm">Estimated Net Income</span>
-                    <span className="text-indigo-300 font-semibold text-lg">₹{result.monthly_income_range[0].toLocaleString()} - ₹{result.monthly_income_range[1].toLocaleString()}</span>
-                  </div>
+
+                  {/* Loan Panel */}
+                  {result.loan_details && (
+                    <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/40 rounded-2xl p-6 border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] relative overflow-hidden flex flex-col justify-between">
+                      <div className="absolute top-0 right-0 bg-emerald-500/80 backdrop-blur-md border-b border-l border-emerald-400/30 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl shadow-lg">
+                        {result.loan_details.market_percentile}
+                      </div>
+                      <div>
+                        <h3 className="text-sm text-emerald-200 mb-3 uppercase tracking-wider font-semibold">Pre-Approved Loan Limit</h3>
+                        <div className="flex items-baseline gap-2 flex-wrap mb-4">
+                          <span className="text-3xl lg:text-4xl font-black text-white">₹{result.loan_details.pre_approved_loan_amount_inr.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="pt-3 border-t border-emerald-500/20 flex justify-between items-center mt-auto">
+                        <span className="text-emerald-200/70 text-sm">Suggested Max EMI</span>
+                        <span className="text-emerald-300 font-semibold">₹{result.loan_details.max_affordable_emi_inr.toLocaleString()} / mo</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Underwriter Memo */}
+                {result.loan_details?.underwriter_memo && (
+                  <div className="bg-black/20 rounded-2xl p-6 border border-indigo-500/30 mb-6 border-l-4 border-l-indigo-500 shadow-lg">
+                    <h3 className="text-sm text-indigo-300 mb-3 uppercase tracking-wider font-semibold flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      Executive Underwriter Memo
+                    </h3>
+                    <p className="text-slate-300 leading-relaxed text-lg">
+                      {result.loan_details.underwriter_memo}
+                    </p>
+                  </div>
+                )}
 
                 {result.risk_flags && result.risk_flags[0] !== "none_detected" && (
                   <div className="mt-auto bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5 shadow-[inset_0_0_20px_rgba(225,29,72,0.1)]">
