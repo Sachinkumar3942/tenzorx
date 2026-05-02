@@ -105,18 +105,18 @@ export default function Page() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500"></div>
               <h2 className="text-2xl font-semibold mb-6 text-indigo-300">Submit Application</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
-                
+
                 {/* Images */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-slate-300">
                     Store Photos (3 to 5 Required)
                   </label>
                   <div className="relative group border-2 border-dashed border-indigo-500/30 rounded-2xl p-6 text-center hover:border-indigo-500/60 transition-colors bg-black/20">
-                    <input 
-                      type="file" 
-                      multiple 
+                    <input
+                      type="file"
+                      multiple
                       accept="image/*"
-                      onChange={handleImageUpload} 
+                      onChange={handleImageUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     <div className="text-indigo-400 mb-2">
@@ -138,8 +138,8 @@ export default function Page() {
                   <label className="block text-sm font-medium mb-2 text-slate-300">
                     Walkthrough Video (Optional)
                   </label>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     accept="video/*"
                     onChange={handleVideoUpload}
                     className="block w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/20 file:text-indigo-300 hover:file:bg-indigo-500/30 transition-all cursor-pointer"
@@ -149,17 +149,17 @@ export default function Page() {
                 {/* Geo */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 flex items-end gap-3">
-                     <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2 text-slate-300">Latitude</label>
-                        <input type="text" value={lat} onChange={e => setLat(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow" placeholder="e.g. 28.6139" required />
-                     </div>
-                     <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2 text-slate-300">Longitude</label>
-                        <input type="text" value={lon} onChange={e => setLon(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow" placeholder="e.g. 77.2090" required />
-                     </div>
-                     <button type="button" onClick={getLocation} className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 transition-all hover:scale-105 active:scale-95" title="Get current location">
-                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                     </button>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium mb-2 text-slate-300">Latitude</label>
+                      <input type="text" value={lat} onChange={e => setLat(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow" placeholder="e.g. 28.6139" required />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium mb-2 text-slate-300">Longitude</label>
+                      <input type="text" value={lon} onChange={e => setLon(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow" placeholder="e.g. 77.2090" required />
+                    </div>
+                    <button type="button" onClick={getLocation} className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 transition-all hover:scale-105 active:scale-95" title="Get current location">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </button>
                   </div>
                 </div>
 
@@ -173,8 +173,8 @@ export default function Page() {
 
                 {error && <p className="text-rose-400 text-sm mt-2 font-medium bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">{error}</p>}
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={loading}
                   className="w-full relative group overflow-hidden rounded-xl font-bold text-white shadow-xl shadow-indigo-900/20 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
@@ -200,33 +200,40 @@ export default function Page() {
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     Evaluation Results
                   </h2>
-                  <div className={`px-4 py-2 rounded-full font-bold text-sm tracking-wider uppercase shadow-lg ${
-                    result.recommendation === 'approve_tier_2' 
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-emerald-500/10' 
-                      : result.recommendation === 'rejected' 
+                  <div className={`px-4 py-2 rounded-full font-bold text-sm tracking-wider uppercase shadow-lg ${result.recommendation === 'approve_tier_2'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-emerald-500/10'
+                      : result.recommendation === 'rejected'
                         ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-rose-500/10'
                         : 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-amber-500/10'
-                  }`}>
+                    }`}>
                     {result.recommendation.replace(/_/g, ' ')}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Avg SKU Count</p>
-                     <p className="text-4xl font-bold text-indigo-300">{result.extracted_features.avg_sku}</p>
+                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Total SKUs</p>
+                    <p className="text-3xl font-bold text-indigo-300">{result.extracted_features.avg_sku}</p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Shelf Density</p>
-                     <p className="text-4xl font-bold text-purple-300">{Math.round(result.extracted_features.avg_density * 100)}%</p>
+                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Shelf Density</p>
+                    <p className="text-3xl font-bold text-purple-300">{Math.round(result.extracted_features.avg_density * 100)}%</p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Nearby Competitors</p>
-                     <p className="text-4xl font-bold text-rose-300">{result.extracted_features.competitors}</p>
+                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">SKU Diversity</p>
+                    <p className="text-3xl font-bold text-pink-300">{result.latent_variables.sku_diversity_score} <span className="text-sm font-normal text-slate-500">/10</span></p>
                   </div>
                   <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
-                     <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Confidence Score</p>
-                     <p className="text-4xl font-bold text-emerald-300">{Math.round(result.confidence_score * 100)}%</p>
+                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Inventory Val</p>
+                    <p className="text-3xl font-bold text-amber-300">₹{(result.latent_variables.inventory_value_estimate_inr || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors">
+                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Footfall Idx</p>
+                    <p className="text-3xl font-bold text-sky-300">{result.latent_variables.footfall_proxy_index} <span className="text-sm font-normal text-slate-500">/10</span></p>
+                  </div>
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5 hover:bg-white/5 transition-colors shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] border-emerald-500/20">
+                    <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider">Confidence</p>
+                    <p className="text-3xl font-bold text-emerald-400">{Math.round(result.confidence_score * 100)}%</p>
                   </div>
                 </div>
 
@@ -257,7 +264,7 @@ export default function Page() {
                     </ul>
                   </div>
                 )}
-                
+
                 {(!result.risk_flags || result.risk_flags[0] === "none_detected") && (
                   <div className="mt-auto bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 flex items-center gap-3">
                     <div className="p-2 bg-emerald-500/20 rounded-full">
@@ -269,11 +276,11 @@ export default function Page() {
               </div>
             ) : (
               <div className="h-full border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center p-12 text-center text-slate-500 bg-black/10 backdrop-blur-sm">
-                 <div className="p-6 bg-white/5 rounded-full mb-6">
-                    <svg className="w-16 h-16 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                 </div>
-                 <h3 className="text-xl font-medium text-slate-300 mb-2">Awaiting Input</h3>
-                 <p className="text-slate-400 max-w-sm">Submit the store details, photos, and location in the form to generate a comprehensive underwriting evaluation.</p>
+                <div className="p-6 bg-white/5 rounded-full mb-6">
+                  <svg className="w-16 h-16 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <h3 className="text-xl font-medium text-slate-300 mb-2">Awaiting Input</h3>
+                <p className="text-slate-400 max-w-sm">Submit the store details, photos, and location in the form to generate a comprehensive underwriting evaluation.</p>
               </div>
             )}
           </div>
