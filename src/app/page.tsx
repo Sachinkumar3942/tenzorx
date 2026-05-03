@@ -1,18 +1,50 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 
+interface CapturedImage {
+  file: File;
+  preview: string;
+  lat: number;
+  lon: number;
+  timestamp: number;
+}
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c * 1000; // Return in meters
+};
+
 export default function Page() {
-  const [images, setImages] = useState<File[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [images, setImages] = useState<CapturedImage[]>([]);
   const [video, setVideo] = useState<File | null>(null);
   const [lat, setLat] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [lon, setLon] = useState<string>("");
   const [shopSize, setShopSize] = useState<string>("150");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string>("");
   const [viewMode, setViewMode] = useState<'customer' | 'underwriter'>('customer');
+  const [cameraActive, setCameraActive] = useState(false);
+  const [currentLat, setCurrentLat] = useState<number | null>(null);
+  const [currentLon, setCurrentLon] = useState<number | null>(null);
+  const [cameraError, setCameraError] = useState<string>("");
+  const [locationError, setLocationError] = useState<string>("");
 
   const handleViewSwitch = () => {
     if (viewMode === 'customer') {
@@ -27,43 +59,255 @@ export default function Page() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setImages((prev) => [...prev, ...files].slice(0, 5)); // max 5
+  // Manage camera stream lifecycle
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+
+    const setupCamera = async () => {
+      try {
+        console.log("Setting up camera...");
+        setCameraError("");
+
+        const constraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        };
+
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Stream obtained:", stream);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          console.log("Stream attached to video element");
+
+          // Wait for video to be ready and then play
+          videoRef.current.onloadedmetadata = () => {
+            console.log("Video metadata loaded, playing...");
+            videoRef.current?.play().catch((err) => {
+              console.error("Video play error:", err);
+              setCameraError("Failed to play video stream: " + err.message);
+            });
+          };
+        }
+      } catch (err: any) {
+        console.error("Camera error:", err);
+        setCameraError(
+          `Camera access denied or unavailable: ${err.message || err.name}`
+        );
+        setCameraActive(false);
+      }
+    };
+
+    if (cameraActive) {
+      setupCamera();
+    }
+
+    // Cleanup function
+    return () => {
+      if (stream) {
+        console.log("Stopping camera stream");
+        stream.getTracks().forEach((track) => {
+          console.log("Stopping track:", track.kind);
+          track.stop();
+        });
+      }
+    };
+  }, [cameraActive]);
+
+  // Start Camera Stream
+  const startCamera = () => {
+    console.log("Start camera clicked");
+    setCameraActive(true);
+
+    // Request location permission
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLat(position.coords.latitude);
+          setCurrentLon(position.coords.longitude);
+          console.log("Location obtained:", position.coords);
+        },
+        (error) => {
+          setLocationError(
+            "Enable location permissions to capture photos. Tap location icon after camera starts."
+          );
+        }
+      );
     }
   };
 
+  // Stop Camera Stream
+  const stopCamera = () => {
+    console.log("Stop camera clicked");
+    setCameraActive(false);
+  };
+
+  // Get Current Location
+  const captureLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLat(position.coords.latitude);
+          setCurrentLon(position.coords.longitude);
+          setLocationError("");
+        },
+        (error) => {
+          setLocationError("Unable to get location. Check permissions.");
+        }
+      );
+    } else {
+      setLocationError("Geolocation not supported by your browser.");
+    }
+  };
+
+  // Capture Photo from Camera
+  const capturePhoto = async () => {
+    console.log("Capture photo clicked");
+    console.log("Current location:", currentLat, currentLon);
+    console.log("Video element:", videoRef.current);
+    console.log("Video srcObject:", videoRef.current?.srcObject);
+    console.log("Video readyState:", videoRef.current?.readyState);
+
+    if (!currentLat || !currentLon) {
+      setError("Location not available. Tap the location icon first.");
+      return;
+    }
+
+    if (images.length >= 5) {
+      setError("Maximum 5 images allowed.");
+      return;
+    }
+
+    try {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+
+      if (!video) {
+        console.error("Video element not found");
+        setError("Video element not found");
+        return;
+      }
+
+      if (!video.srcObject) {
+        console.error("Video stream not available");
+        setError("Video stream not available");
+        return;
+      }
+
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        console.error("Video not ready. ReadyState:", video.readyState);
+        setError("Video not ready. Please wait a moment and try again.");
+        return;
+      }
+
+      if (canvas && video) {
+        const context = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context?.drawImage(video, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `shop_${Date.now()}.jpg`, { type: "image/jpeg" });
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+              const preview = e.target?.result as string;
+              setImages((prev) => [
+                ...prev,
+                {
+                  file,
+                  preview,
+                  lat: currentLat,
+                  lon: currentLon,
+                  timestamp: Date.now(),
+                },
+              ]);
+              setError("");
+            };
+
+            reader.readAsDataURL(file);
+          }
+        }, "image/jpeg", 0.9);
+      }
+    } catch (err) {
+      setError("Failed to capture photo.");
+    }
+  };
+
+  // Remove Image
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle Video Upload
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setVideo(e.target.files[0]);
     }
   };
 
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLat(position.coords.latitude.toString());
-          setLon(position.coords.longitude.toString());
-        },
-        (error) => {
-          setError("Error getting location: " + error.message);
-        }
-      );
-    } else {
-      setError("Geolocation is not supported by this browser.");
+  // Handle File Upload (Fallback)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && !cameraActive) {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        if (images.length >= 5) break;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const preview = event.target?.result as string;
+          setImages((prev) => [
+            ...prev,
+            {
+              file,
+              preview,
+              lat: currentLat || 0,
+              lon: currentLon || 0,
+              timestamp: Date.now(),
+            },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (images.length < 3) {
-      setError("Please upload at least 3 images.");
+      setError("Please capture at least 3 images.");
       return;
     }
     if (!lat || !lon) {
-      setError("Please provide geo-coordinates.");
+      setError("Please provide shop location.");
+      return;
+    }
+
+    // Validate all images are from same location (within 50 meters)
+    const shopLat = parseFloat(lat);
+    const shopLon = parseFloat(lon);
+    let locationMismatch = false;
+    let maxDistance = 0;
+
+    for (const img of images) {
+      const distance = calculateDistance(shopLat, shopLon, img.lat, img.lon);
+      maxDistance = Math.max(maxDistance, distance);
+
+      if (distance > 50) { // 50 meters tolerance
+        locationMismatch = true;
+      }
+    }
+
+    if (locationMismatch) {
+      setError(
+        `Location mismatch detected! Photos taken at different locations (max ${maxDistance.toFixed(0)}m apart). ` +
+        `Please ensure all photos are taken from the same shop location.`
+      );
       return;
     }
 
@@ -72,11 +316,20 @@ export default function Page() {
 
     try {
       const formData = new FormData();
-      images.forEach((img) => formData.append("images", img));
+
+      // Add image files and metadata
+      images.forEach((img, index) => {
+        formData.append("images", img.file);
+        formData.append(`image_${index}_lat`, img.lat.toString());
+        formData.append(`image_${index}_lon`, img.lon.toString());
+        formData.append(`image_${index}_timestamp`, img.timestamp.toString());
+      });
+
       if (video) formData.append("video", video);
       formData.append("latitude", lat);
       formData.append("longitude", lon);
       formData.append("shop_size_sqft", shopSize);
+      formData.append("email", email);
 
       const res = await fetch("http://localhost:8000/predict", {
         method: "POST",
@@ -99,6 +352,10 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-white text-slate-800 font-sans overflow-x-hidden">
+      {/* Hidden Canvas & Video for Camera Capture */}
+      <canvas ref={canvasRef} className="hidden" />
+      <video ref={videoRef} className="hidden" />
+
       {/* Top Navigation */}
       <nav className="bg-white sticky top-0 z-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -229,32 +486,153 @@ export default function Page() {
               <h3 className="text-2xl font-semibold mb-6 text-[#004b87] border-b border-gray-100 pb-4">Store Details & Evaluation</h3>
               <form onSubmit={handleSubmit} className="space-y-6">
 
-                {/* Images */}
+                {/* Camera Capture Section */}
                 <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
-                    Store Photos (3 to 5 Required)
+                    Capture Store Photos (3 to 5 Required)
                   </label>
-                  <div className="relative group border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#004b87] transition-colors bg-gray-50">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="text-gray-400 mb-2">
-                      <svg className="mx-auto h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+
+                  <div className="bg-[#f0f7ff] border border-[#b3d4ff] rounded-lg p-4 mb-4 text-sm text-[#004b87]">
+                    <p className="font-semibold mb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                       </svg>
-                    </div>
-                    <p className="text-sm text-gray-500">Drag & Drop or Click to Browse</p>
-                    {images.length > 0 && (
-                      <div className="mt-4 text-xs font-bold text-[#004b87] bg-blue-50 inline-block px-3 py-1 rounded border border-blue-200">
-                        {images.length} image{images.length !== 1 ? 's' : ''} selected
+                      Capture Guidelines
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1.5 text-[#003b73]">
+                      <li><strong>Lighting:</strong> Ensure the store is well-lit. Avoid taking photos in very dark areas or facing direct sunlight.</li>
+                      <li><strong>Angles:</strong> Stand back and capture wide angles to show overall shelf fullness and store layout.</li>
+                      <li><strong>Coverage:</strong> Try to capture different sections of the store to show product variety.</li>
+                      <li><strong>Clarity:</strong> Keep the camera steady to avoid blurry images. Ensure products are clearly visible.</li>
+                    </ul>
+                  </div>
+
+                  {!cameraActive ? (
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="w-full bg-blue-50 hover:bg-blue-100 border-2 border-dashed border-blue-300 rounded-lg p-6 text-center transition-colors flex flex-col items-center gap-3"
+                    >
+                      <svg className="w-8 h-8 text-[#004b87]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-[#004b87]">Start Camera</p>
+                        <p className="text-xs text-gray-500 mt-1">Location will be captured with each photo</p>
                       </div>
-                    )}
+                    </button>
+                  ) : (
+                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-black relative w-full">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        disablePictureInPicture
+                        className="w-full h-96 md:h-96 object-cover bg-black block"
+                      />
+                      {(!currentLat || !currentLon) && (
+                        <div className="absolute top-4 left-4 bg-yellow-500/90 text-white px-3 py-2 rounded text-sm font-semibold">
+                          ⚠️ Tap "Get Location" to enable GPS
+                        </div>
+                      )}
+                      <div className="bg-gray-900 p-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={captureLocation}
+                          className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2"
+                          title="Get current GPS location"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          </svg>
+                          Get Location
+                        </button>
+                        <button
+                          type="button"
+                          onClick={capturePhoto}
+                          className="flex-1 bg-[#004b87] hover:bg-[#003B73] text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          </svg>
+                          Capture
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded"
+                        >
+                          Stop
+                        </button>
+                      </div>
+                      {currentLat && currentLon && (
+                        <div className="bg-green-50 p-3 border-t border-gray-300 text-sm text-green-700">
+                          📍 Location: {currentLat.toFixed(4)}, {currentLon.toFixed(4)}
+                        </div>
+                      )}
+                      {locationError && (
+                        <div className="bg-yellow-50 p-3 border-t border-gray-300 text-sm text-yellow-700">
+                          ⚠️ {locationError}
+                        </div>
+                      )}
+                      {cameraError && (
+                        <div className="bg-red-50 p-3 border-t border-gray-300 text-sm text-red-700">
+                          ❌ {cameraError}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Captured Images Gallery */}
+                  {images.length > 0 && (
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      {images.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={img.preview} alt={`Captured ${idx + 1}`} className="w-full h-24 object-cover rounded border border-gray-200" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 rounded flex items-center justify-center transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => removeImage(idx)}
+                              className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-semibold"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            📍 {img.lat.toFixed(3)}, {img.lon.toFixed(3)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-xs text-gray-600">
+                      {images.length > 0 ? (
+                        <span className="font-semibold text-[#004b87]">✓ {images.length} images captured</span>
+                      ) : (
+                        <span>Tap "Start Camera" to begin capturing shop photos</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Fallback File Upload 
+                <div className="border-t border-gray-200 pt-4">
+                  <label className="text-xs text-gray-600 font-semibold">Or upload from files:</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={cameraActive}
+                    className="block w-full mt-2 text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+                */}
 
                 {/* Video */}
                 <div>
@@ -269,21 +647,53 @@ export default function Page() {
                   />
                 </div>
 
-                {/* Geo */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 flex items-end gap-3">
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold mb-2 text-gray-700">Latitude</label>
-                      <input type="text" value={lat} onChange={e => setLat(e.target.value)} className="w-full bg-white border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#004b87] focus:ring-1 focus:ring-[#004b87] transition-shadow" placeholder="e.g. 28.6139" required />
+
+                {/* Geo - Confirm shop location */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <label className="block text-sm font-semibold mb-3 text-[#004b87] flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    </svg>
+                    Confirm Shop Location
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-gray-600">Latitude</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={lat}
+                        onChange={e => setLat(e.target.value)}
+                        className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#004b87] focus:ring-1 focus:ring-[#004b87]"
+                        placeholder="28.6139"
+                        required
+                      />
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold mb-2 text-gray-700">Longitude</label>
-                      <input type="text" value={lon} onChange={e => setLon(e.target.value)} className="w-full bg-white border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#004b87] focus:ring-1 focus:ring-[#004b87] transition-shadow" placeholder="e.g. 77.2090" required />
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-gray-600">Longitude</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={lon}
+                        onChange={e => setLon(e.target.value)}
+                        className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#004b87] focus:ring-1 focus:ring-[#004b87]"
+                        placeholder="77.2090"
+                        required
+                      />
                     </div>
-                    <button type="button" onClick={getLocation} className="px-4 py-3 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-gray-700 transition-all" title="Get current location">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    </button>
                   </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    📍 All captured photos will be verified to be within the estimated shop area of this location
+                  </p>
+                </div>
+
+                {/* Notification Email */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Notification Email (Required)
+                  </label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="owner@store.com" required className="w-full bg-white border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#004b87] focus:ring-1 focus:ring-[#004b87] transition-shadow" />
+                  <p className="text-xs text-gray-500 mt-1">Used for continuous monitoring alerts to unlock final loan phase.</p>
                 </div>
 
                 {/* Optional */}
@@ -325,10 +735,10 @@ export default function Page() {
                     </h2>
                     {viewMode === 'underwriter' && (
                       <div className={`px-4 py-1.5 rounded font-bold text-xs tracking-wider uppercase ${result.recommendation === 'approve_tier_2' || result.recommendation.includes('approve')
-                          ? 'bg-green-100 text-green-800 border border-green-200'
-                          : result.recommendation === 'rejected'
-                            ? 'bg-red-100 text-red-800 border border-red-200'
-                            : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : result.recommendation === 'rejected'
+                          ? 'bg-red-100 text-red-800 border border-red-200'
+                          : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                         }`}>
                         {result.recommendation.replace(/_/g, ' ')}
                       </div>
@@ -378,14 +788,46 @@ export default function Page() {
                       <div className="absolute top-0 right-0 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                         {result.loan_details.market_percentile}
                       </div>
-                      <h3 className="text-sm font-bold text-blue-200 uppercase tracking-wider mb-2">Pre-Approved Loan Limit</h3>
+                      <h3 className="text-sm font-bold text-blue-200 uppercase tracking-wider mb-2">Total Pre-Approved Loan Limit</h3>
                       <div className="text-4xl font-bold mb-4">
                         ₹{result.loan_details.pre_approved_loan_amount_inr.toLocaleString()}
                       </div>
-                      <div className="pt-4 border-t border-blue-800/50 flex justify-between items-center">
+                      
+                      {result.loan_details.initial_sanction_amount_inr && (
+                        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-blue-800/50">
+                           <div>
+                             <p className="text-blue-200 text-xs uppercase tracking-wider">Phase 1: Initial (Now)</p>
+                             <p className="font-bold text-xl text-green-300">₹{result.loan_details.initial_sanction_amount_inr.toLocaleString()}</p>
+                           </div>
+                           <div>
+                             <p className="text-blue-200 text-xs uppercase tracking-wider">Phase 2: Final (In 6 Mos)</p>
+                             <p className="font-bold text-xl text-yellow-300">₹{result.loan_details.final_sanction_amount_inr.toLocaleString()}</p>
+                           </div>
+                        </div>
+                      )}
+                      
+                      <div className="pt-4 mt-4 border-t border-blue-800/50 flex justify-between items-center">
                         <span className="text-blue-200 text-sm">Suggested Max EMI</span>
                         <span className="font-bold text-lg">₹{result.loan_details.max_affordable_emi_inr.toLocaleString()} / mo</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Monitoring Schedule */}
+                  {result.loan_details?.monitoring_schedule && (
+                    <div className="bg-[#fff9e6] rounded-xl p-5 border border-yellow-200 mb-6">
+                      <h3 className="text-sm font-bold text-yellow-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Continuous Monitoring Schedule
+                      </h3>
+                      <p className="text-sm text-yellow-900 mb-3">{result.loan_details.monitoring_schedule.description}</p>
+                      <ul className="text-sm text-yellow-800 space-y-2">
+                        <li><strong>Starting Week:</strong> {result.loan_details.monitoring_schedule.starting_week}</li>
+                        <li><strong>Next 5-6 Months:</strong> {result.loan_details.monitoring_schedule.months_1_to_6}</li>
+                      </ul>
+                      <p className="text-xs text-yellow-700 mt-3 pt-3 border-t border-yellow-200">
+                        Verification alerts will be sent to: <span className="font-semibold">{result.loan_details.monitoring_schedule.email_target}</span>
+                      </p>
                     </div>
                   )}
 
